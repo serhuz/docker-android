@@ -1,9 +1,10 @@
-FROM azul/zulu-openjdk-debian:8
+FROM azul/zulu-openjdk-debian:11
 
 # Use UTF-8 locale
 RUN apt-get -qq update
 RUN apt-get -qqy install locales
-RUN locale-gen en_US.UTF-8
+RUN echo "en_US.UTF-8 UTF-8" >> /etc/locale.gen
+RUN locale-gen
 ENV LANG en_US.UTF-8
 ENV LANGUAGE en_US:en
 ENV LC_ALL en_US.UTF-8
@@ -12,22 +13,15 @@ ENV LC_ALL en_US.UTF-8
 RUN apt-get -qqy install \
 lib32stdc++6 unzip wget expect git curl ssh tar gzip ca-certificates
 
-RUN useradd -u 1000 -M -s /bin/bash android
-RUN chown 1000 /opt
+# Download and unzip Android SDK
+RUN wget -q https://dl.google.com/android/repository/commandlinetools-linux-7583922_latest.zip -O /opt/android-sdk.zip
+RUN mkdir -p /opt/android-sdk/cmdline-tools
+RUN unzip /opt/android-sdk.zip -d /opt/android-sdk/cmdline-tools
+RUN rm -f /opt/android-sdk.zip
+RUN mv /opt/android-sdk/cmdline-tools/cmdline-tools /opt/android-sdk/cmdline-tools/latest
 
-USER android
 ENV ANDROID_SDK_HOME /opt/android-sdk
 ENV ANDROID_HOME /opt/android-sdk
+ENV PATH ${PATH}:${ANDROID_SDK_HOME}/cmdline-tools/latest/bin
 
-# Download and unzip Android SDK
-RUN cd /opt && wget -q https://dl.google.com/android/repository/sdk-tools-linux-3859397.zip -O android-sdk.zip
-RUN cd /opt && mkdir android-sdk
-RUN cd /opt && unzip android-sdk.zip -d android-sdk
-RUN cd /opt && rm -f android-sdk.zip
-
-ENV PATH ${PATH}:${ANDROID_SDK_HOME}/tools:${ANDROID_SDK_HOME}/platform-tools:/opt/tools:${ANDROID_SDK_HOME}/tools/bin
-
-RUN cd /opt/android-sdk && mkdir .android && touch .android/repositories.cfg
-
-USER root
 RUN apt-get clean
